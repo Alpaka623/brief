@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f6f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+<meta name="referrer" content="no-referrer">
+<title>Brief</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<style>
+  /* One UI-ish: big header, grouped rounded lists, quiet colours */
+  :root {
+    --bg: #f6f6f6; --surface: #ffffff; --text: #1d1d1d; --sub: #767676; --div: #ececec;
+    --blue: #0381fe; --orange: #f08c00; --red: #e8453c; --green: #2bab5f; --violet: #7c5cff;
+    --chip: #f1f1f1;
+  }
+  :root { --tile: #ffffff; --markbg: #dcecff; --markfg: #0b4fa8; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    /* dark: lighter, desaturated accents so text stays readable on grey */
+    :root { --bg: #121212; --surface: #1e1e1e; --tile: #1e1e1e; --text: #f2f2f2; --sub: #9a9a9a; --div: #2c2c2c;
+            --blue: #8cc4ff; --orange: #ffb35c; --red: #ff8a80; --green: #6fd99a; --violet: #b3a6ff;
+            --chip: #2a2a2a; --markbg: #23384f; --markfg: #cfe6ff; }
+  }
+  /* two columns on unfolded Fold / tablet / desktop */
+  .cols { display: block; }
+  @media (min-width: 860px) {
+    main { max-width: 1240px; padding: 0 24px 48px; }
+    .cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 0 22px; align-items: start; }
+  }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: "SamsungOne", "Samsung Sans", Roboto, system-ui, sans-serif; font-size: 16px; line-height: 1.45; }
+  main { max-width: 760px; margin: 0 auto; padding: 0 14px 48px; }
+
+  .appbar { min-height: 17vh; display: flex; flex-direction: column; justify-content: flex-end;
+    padding: max(24px, env(safe-area-inset-top)) 12px 26px; }
+  @media (min-width: 860px) { .appbar { min-height: 0; padding-top: 36px; padding-bottom: 20px; } }
+  .appbar h1 { font-size: 2.15rem; font-weight: 500; margin: 0; letter-spacing: -0.01em; }
+  .appbar .date { color: var(--sub); margin-top: 6px; font-size: .95rem; }
+
+  .label { color: var(--sub); font-size: .85rem; margin: 22px 12px 8px; }
+  .group { background: var(--surface); border-radius: 26px; overflow: hidden; }
+  .pad { padding: 18px 20px; }
+
+  .story p { margin: 0 0 10px; font-size: 1.02rem; }
+  .story p:last-child { margin-bottom: 0; }
+
+  .wx { display: flex; align-items: center; justify-content: space-between; }
+  .wx .temp { font-size: 3.2rem; font-weight: 300; line-height: 1; }
+  .wx .right { text-align: right; }
+  .wx .cond { font-size: 1.05rem; }
+  .wx .hl { color: var(--sub); font-size: .9rem; margin-top: 2px; }
+  .hours { display: flex; justify-content: space-between; margin-top: 18px; gap: 4px; overflow: hidden; }
+  .hours::-webkit-scrollbar { display: none; }
+  .hour { text-align: center; min-width: 46px; font-size: .85rem; }
+  .hour .h { color: var(--sub); }
+  .hour svg { width: 22px; height: 22px; margin: 6px 0 2px; }
+  .hour .p { color: var(--blue); font-size: .75rem; min-height: 1em; }
+
+  .row { display: flex; gap: 14px; padding: 15px 20px; position: relative; }
+  .row + .row::before { content: ""; position: absolute; top: 0; left: 70px; right: 20px; border-top: 1px solid var(--div); }
+  .ic { width: 36px; height: 36px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-size: .85rem; font-weight: 600; }
+  .ic svg { width: 19px; height: 19px; }
+  .row .body { min-width: 0; flex: 1; }
+  .row .t { font-size: 1rem; }
+  .row .s { color: var(--sub); font-size: .88rem; margin-top: 1px; }
+  .row .x { margin-top: 4px; font-size: .93rem; }
+  .row .meta { color: var(--sub); font-size: .8rem; white-space: nowrap; max-width: 34%; overflow: hidden; text-overflow: ellipsis; }
+  .due { color: var(--orange); }
+  /* deadline countdown badge: neutral >= 10 days, yellow < 10, red <= 3 */
+  .cd { align-self: center; white-space: nowrap; border-radius: 12px; padding: 3px 10px; font-size: .8rem; font-weight: 600;
+        background: var(--chip); color: var(--sub); }
+  .cd.soon { background: color-mix(in srgb, #f5c400 22%, transparent); color: #b38f00; }
+  .cd.now { background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+  @media (prefers-color-scheme: dark) { .cd.soon { color: #ffd54a; } }
+  .flag { color: var(--red); }
+  .more { color: var(--sub); font-size: .88rem; padding: 0 20px 16px 70px; }
+
+  /* inline highlights: **bold**  ==marked==  !!warning!!  ++good++ */
+  strong { font-weight: 650; }
+  mark { background: var(--markbg); color: var(--markfg); border-radius: 6px; padding: 0 4px; }
+  .w { color: var(--orange); font-weight: 600; }
+  .g { color: var(--green); font-weight: 600; }
+  .story .lead { font-size: 1.15rem; font-weight: 400; line-height: 1.45; margin-bottom: 14px; }
+  .story .lead strong { font-weight: 650; }
+  .story .lead:last-child { margin-bottom: 0; }
+  /* briefing paragraphs as tiles with a topic icon */
+  .tiles { display: grid; gap: 10px; margin-top: 10px; }
+  .tile { display: flex; gap: 14px; align-items: flex-start; background: var(--tile); border-radius: 22px; padding: 14px 16px; }
+  .tile .ti { width: 34px; height: 34px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+  .tile .ti svg { width: 18px; height: 18px; }
+  .tile .tx { min-width: 0; font-size: .97rem; color: color-mix(in srgb, var(--text) 82%, transparent); }
+  .tile .tk { font-size: .74rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; margin-bottom: 2px; }
+  .tile .th { font-size: 1.04rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .row.done .t { text-decoration: line-through; color: var(--sub); }
+  .row.done { opacity: .6; }
+  .chk { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--sub); background: transparent; margin: 5px 5px 0; padding: 0; flex: none; display: grid; place-items: center; color: #fff; }
+  .chk svg { width: 15px; height: 15px; visibility: hidden; }
+  .row.done .chk { background: var(--green); border-color: var(--green); }
+  .row.done .chk svg { visibility: visible; }
+
+  /* custom cards (block system) */
+  .cardhead { display: flex; align-items: center; gap: 12px; padding: 16px 20px 4px; }
+  .cardhead .ic { width: 30px; height: 30px; }
+  .cardhead .ic svg { width: 16px; height: 16px; }
+  .cardhead .ttl { font-size: 1.02rem; font-weight: 600; }
+  .blk { padding: 8px 20px; }
+  .blk:last-child { padding-bottom: 18px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { flex: 1 1 90px; background: var(--chip); border-radius: 18px; padding: 12px 14px; }
+  .stat .v { font-size: 1.7rem; font-weight: 400; line-height: 1.1; }
+  .stat .l { color: var(--sub); font-size: .8rem; }
+  .kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--div); }
+  .kv:first-child { border-top: 0; }
+  .kv .k { color: var(--sub); }
+  .kv .v { text-align: right; }
+  .bul { margin: 0; padding-left: 20px; }
+  .bul li { margin: 4px 0; }
+  .tl { display: flex; gap: 12px; padding: 6px 0; }
+  .tl .tm { width: 54px; flex: none; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .tl .ln { border-left: 2px solid var(--div); padding-left: 12px; }
+  .bar { height: 8px; border-radius: 4px; background: var(--chip); overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; border-radius: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--chip); border-radius: 16px; padding: 5px 12px; font-size: .88rem; }
+  .callout { border-radius: 18px; padding: 12px 14px; }
+  .quote { border-left: 3px solid var(--div); padding-left: 12px; color: var(--sub); font-style: italic; }
+
+  /* One UI style tab bar */
+  .tabs { display: flex; gap: 6px; background: var(--surface); border-radius: 26px; padding: 5px; margin: 0 0 4px; }
+  .tab { flex: 1; margin: 0; background: transparent; color: var(--sub); border-radius: 22px; padding: 9px 0; font-size: .98rem; font-weight: 500; }
+  .tab.on { background: var(--chip); color: var(--text); }
+  .badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 6px; border-radius: 9px; background: var(--violet); color: #fff; font-size: .72rem; line-height: 18px; }
+
+  .next .rain { color: var(--blue); margin-top: 2px; }
+  .next .s { color: var(--sub); }
+  .next { margin-top: 12px; background: var(--surface); border-radius: 18px; padding: 10px 14px; font-size: .92rem; }
+  .amp { display: flex; align-items: center; gap: 8px; padding: 14px 20px 4px; font-size: .95rem; }
+  .amp .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .amp-note { padding: 4px 20px 6px 40px; color: var(--sub); font-size: .88rem; }
+  .amp-note:first-child { padding: 14px 20px 4px; }
+  .qz { border-top: 1px solid var(--div); }
+  .qz:first-child { border-top: 0; }
+  .qz summary { list-style: none; cursor: pointer; display: flex; gap: 12px; padding: 15px 20px; align-items: flex-start; }
+  .qz summary::-webkit-details-marker { display: none; }
+  .qz .qn { width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center; color: #fff; font-size: .8rem; font-weight: 700; }
+  .qz .qc { color: var(--sub); font-size: .78rem; }
+  .qz .qa { padding: 0 20px 16px 58px; color: color-mix(in srgb, var(--text) 85%, transparent); }
+  .qz .hint { color: var(--blue); font-size: .8rem; margin-top: 3px; }
+  .qz[open] .hint { display: none; }
+  .row .kitag { color: var(--violet); }
+  .xbtn { margin: 0 0 0 8px; padding: 2px 10px; font-size: .78rem; border-radius: 12px; background: var(--chip); color: var(--sub); vertical-align: 1px; }
+  .alert { background: color-mix(in srgb, var(--orange) 16%, var(--surface)); border-radius: 18px; padding: 12px 16px; margin-bottom: 10px; font-size: .92rem; }
+  .alert strong { color: var(--orange); }
+  .donegrp summary { list-style: none; cursor: pointer; color: var(--sub); font-size: .88rem; padding: 12px 20px 14px 70px; }
+  .donegrp summary::-webkit-details-marker { display: none; }
+  .donegrp summary::after { content: ' ▾'; }
+  .donegrp[open] summary::after { content: ' ▴'; }
+  @media (min-width: 860px) {
+    .cols .vids { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+    .cols .vid { max-width: none; }
+    .cols .vid:nth-child(n+5) { display: none; }
+  }
+  .lblrow { display: flex; align-items: center; justify-content: space-between; }
+  .lblrow .xbtn { margin: 0; }
+  /* quick capture */
+  .capture { display: flex; align-items: center; gap: 6px; background: var(--surface); border-radius: 32px; padding: 8px 8px 8px 24px;
+             margin-bottom: 10px; min-height: 58px; transition: box-shadow .2s; }
+  .capture:focus-within { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sub) 40%, transparent); }
+  .capture input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: 1.02rem; padding: 8px 0; }
+  .capture input::placeholder { color: var(--sub); }
+  .capture button { margin: 0; flex: none; }
+  .kichip { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 20px; background: transparent;
+            color: var(--sub); font-size: .98rem; font-weight: 500; transition: background .15s, color .15s; }
+  .kichip svg { width: 19px; height: 19px; }
+  .kichip[aria-pressed="true"] { background: color-mix(in srgb, var(--blue) 16%, transparent); color: var(--blue); }
+  .addbtn { width: 42px; height: 42px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--blue); color: #fff; }
+  @media (prefers-color-scheme: dark) { .addbtn { background: #2f6fd6; } }
+  .addbtn svg { width: 20px; height: 20px; }
+  #capList { margin-bottom: 10px; }
+  .done-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--sub); background: transparent; margin: 2px 6px 0 6px; padding: 0; flex: none; }
+  .done-btn.on { background: var(--green); border-color: var(--green); }
+
+  /* live data */
+  .live::after { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-left: 7px; vertical-align: 1px; }
+  .price { font-size: 1.35rem; font-variant-numeric: tabular-nums; white-space: nowrap; align-self: center; }
+  .price sup { font-size: .65em; }
+  .cheap { color: var(--green); }
+  .attr { color: var(--sub); font-size: .75rem; padding: 0 20px 12px 70px; }
+
+  /* video suggestions */
+  .vids { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; scrollbar-width: none; }
+  .vid { flex: 0 0 78%; max-width: 300px; scroll-snap-align: start; background: var(--surface); border-radius: 22px; overflow: hidden; color: inherit; text-decoration: none; }
+  .vid img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--chip); }
+  .vid .vt { padding: 10px 14px 0; font-size: .95rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vid .vs { padding: 3px 14px 12px; color: var(--sub); font-size: .82rem; }
+
+  .foot { text-align: center; color: var(--sub); font-size: .8rem; margin-top: 26px; }
+  #state { min-height: 80vh; display: grid; place-items: center; color: var(--sub); text-align: center; padding: 20px; }
+  button { background: var(--blue); color: #fff; border: 0; border-radius: 24px; padding: 11px 22px; font-size: 1rem; margin-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <div id="state">Lade Brief …</div>
+  <div id="app" hidden>
+    <div class="appbar"><h1 id="greeting"></h1><div class="date" id="date"></div><div class="next" id="nextUp" hidden></div></div>
+
+    <div class="alert" id="alertBox" hidden></div>
+    <div class="capture" id="capture">
+      <input id="capIn" placeholder="Schnell notieren" maxlength="500" enterkeyhint="send" autocomplete="off">
+      <button id="kiBtn" class="kichip" type="button" aria-pressed="false" aria-label="An die KI schicken (umschalten)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3"/></svg>KI</button>
+      <button id="capBtn" class="addbtn" type="button" aria-label="Hinzufügen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="group" id="capList" hidden></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="today" role="tab">Heute</button>
+      <button class="tab" data-tab="uni" role="tab">Uni<span class="badge" id="uniBadge" hidden></span></button>
+    </div>
+
+    <div id="paneUni" class="cols" hidden>
+      <div class="col">
+      <div class="label">Überblick</div>
+      <div class="group pad story" id="uniSummary"></div>
+      <div id="quizWrap" hidden><div class="label">Teste dich · neuer Stoff</div><div class="group" id="quiz"></div></div>
+      <div id="uniDlWrap"><div class="label">Fristen</div><div class="group" id="uniDeadlines"></div></div>
+      </div>
+      <div class="col">
+      <div id="uniMailWrap"><div class="label">Uni-Mails</div><div class="group" id="uniMails"></div></div>
+      </div>
+    </div>
+
+    <div id="paneToday" class="cols">
+    <div class="col" id="colL">
+    <div id="briefBlock">
+      <div id="tmWrap" hidden><div class="label">Ausblick auf morgen</div><div class="group pad story" id="tomorrow"></div></div>
+      <div class="label" id="briefLabel">Tages-Briefing</div>
+      <div class="story" id="story"></div>
+    </div>
+    <div id="customTop"></div>
+    <div id="dlWrap"><div class="label">Fristen · nächste 7 Tage</div><div class="group" id="dlToday"></div></div>
+    <div id="todoWrap"><div class="label">Zu erledigen</div><div class="group" id="todos"></div></div>
+    <div id="mailWrap"><div class="label" id="mailLabel">E-Mails</div><div class="group" id="mails"></div></div>
+    <div id="wxWrap">
+      <div class="label" id="wxLabel">Wetter</div>
+      <div class="group pad" id="wxCard">
+        <div class="wx">
+          <div class="temp" id="wxTemp"></div>
+          <div class="right"><div class="cond" id="wxDesc"></div><div class="hl" id="wxRange"></div></div>
+        </div>
+        <div class="hours" id="wxHours"></div>
+      </div>
+    </div>
+    <div id="bvbWrap" hidden><div class="label">Nächstes BVB-Heimspiel · Stau rund ums Stadion</div><div class="group" id="bvb"></div></div>
+    <div id="fuelWrap" hidden><div class="label lblrow"><span id="fuelLabel">Diesel</span><button class="xbtn" id="fuelRefresh" type="button">↻ Aktualisieren</button></div><div class="group" id="fuel"></div></div>
+    <div id="newsWrap"><div class="label">Nachrichten</div><div class="group" id="news"></div></div>
+    <div id="vidWrap" hidden><div class="label">Videos für dich</div><div class="vids" id="vids"></div></div>
+    <div id="customBottom"></div>
+    </div>
+    <div class="col" id="colR"></div>
+    </div>
+
+    <div class="foot" id="foot"></div>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; };
+  const b64 = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = (paths, stroke) => { const s = document.createElementNS(NS, 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', stroke || 'currentColor'); s.setAttribute('stroke-width', '1.8'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+    for (const d of paths) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.append(p); } return s; };
+  const I = {
+    sun: ['M12 4V2M12 22v-2M4 12H2M22 12h-2M5.6 5.6 4.2 4.2M19.8 19.8l-1.4-1.4M5.6 18.4l-1.4 1.4M19.8 4.2l-1.4 1.4', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],
+    cloud: ['M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 11 3.5 3.5 0 0 0 7 18z'],
+    rain: ['M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8 3.5 3.5 0 0 0 7 15z', 'M9 18l-1 3M13 18l-1 3M17 18l-1 3'],
+    snow: ['M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8 3.5 3.5 0 0 0 7 15z', 'M9 19h.01M13 21h.01M13 18h.01M17 19h.01'],
+    storm: ['M7 15h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 8 3.5 3.5 0 0 0 7 15z', 'M13 16l-2 3h3l-2 3'],
+    fog: ['M4 10h16M6 14h12M8 18h8'],
+    check: ['M5 12l4 4 10-10'],
+    mail: ['M4 6h16v12H4z', 'M4 7l8 6 8-6'],
+    news: ['M5 5h11v14H6a1 1 0 0 1-1-1z', 'M16 9h3v9a1 1 0 0 1-1 1h-2', 'M8 9h5M8 12h5M8 15h3'],
+  };
+  const wxIcon = (c) => c <= 1 ? I.sun : c <= 3 ? I.cloud : c <= 48 ? I.fog : c >= 95 ? I.storm : (c >= 71 && c <= 77) || c >= 85 ? I.snow : I.rain;
+  const WX = {0:'Klar',1:'Überwiegend klar',2:'Teils bewölkt',3:'Bedeckt',45:'Nebel',48:'Reifnebel',51:'Leichter Niesel',53:'Niesel',55:'Starker Niesel',
+    61:'Leichter Regen',63:'Regen',65:'Starker Regen',66:'Gefrierender Regen',67:'Gefrierender Regen',71:'Leichter Schnee',73:'Schnee',75:'Starker Schnee',
+    77:'Schneegriesel',80:'Regenschauer',81:'Regenschauer',82:'Heftige Schauer',85:'Schneeschauer',86:'Schneeschauer',95:'Gewitter',96:'Gewitter mit Hagel',99:'Gewitter mit Hagel'};
+  Object.assign(I, {
+    star: ['M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z'],
+    calendar: ['M4 6h16v14H4z', 'M4 10h16M8 3v4M16 3v4'],
+    clock: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M12 7v5l3 2'],
+    box: ['M3 7l9-4 9 4-9 4z', 'M3 7v10l9 4 9-4V7', 'M12 11v10'],
+    money: ['M3 6h18v12H3z', 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z'],
+    heart: ['M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z'],
+    game: ['M6 9h12a3 3 0 0 1 3 3v2a3 3 0 0 1-5 2l-1-1H9l-1 1a3 3 0 0 1-5-2v-2a3 3 0 0 1 3-3z', 'M8 11v3M6.5 12.5h3'],
+    alert: ['M12 3l10 18H2z', 'M12 10v4M12 17h.01'],
+    bulb: ['M9 18h6M10 21h4', 'M12 3a6 6 0 0 0-4 10.5V16h8v-2.5A6 6 0 0 0 12 3z'],
+    travel: ['M2 16l20-8-6 12-3-5z'],
+    music: ['M9 18V5l11-2v13', 'M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3z'],
+    sport: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18'],
+    hat: ['M2 9l10-5 10 5-10 5z', 'M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5', 'M22 9v6'],
+    fuel: ['M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16', 'M3 21h12', 'M7 7h4', 'M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V9l-3-3'],
+  });
+  const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const hm = (dt) => dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = (a, b) => a.toDateString() === b.toDateString();
+  const daysUntil = (iso) => { const [y, mo, da] = iso.split('-').map(Number); const t = new Date(); return Math.round((new Date(y, mo - 1, da) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 864e5); };
+  // deadline list computed at open time: count-down + order stay correct for days after the brief was made
+  const liveDeadlines = (list) => (list || []).map((t) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date || '')) return t;
+    const n = daysUntil(t.date); const [y, mo, da] = t.date.split('-').map(Number); const dd = new Date(y, mo - 1, da);
+    return { ...t, days: n, due: `${WD[dd.getDay()]} ${String(da).padStart(2, '0')}.${String(mo).padStart(2, '0')}. · ${n === 0 ? 'heute' : n === 1 ? 'morgen' : 'in ' + n + ' Tagen'}` };
+  }).filter((t) => (typeof t.days !== 'number' || t.days >= 0) && !dlHidden().includes(dlKey(t))).sort((a, b) => (a.days ?? 999) - (b.days ?? 999));
+  const PAL = { blue: '#0381fe', green: '#2bab5f', orange: '#f08c00', violet: '#7c5cff', red: '#e8453c', teal: '#00a5b5', gray: '#767676' };
+  const col = (c) => PAL[c] || PAL.blue;
+  // fixed colour per course (Uni tab + deadlines)
+  // private settings (name, places, timetable, courses) arrive inside the encrypted brief: nothing personal in this public file
+  let CFG = {}, COURSE = [];
+  const courseColor = (s) => (COURSE.find(([re]) => re.test(String(s || ''))) || [0, PAL.violet])[1];
+
+  // Safe inline markup -> DOM (never innerHTML): **bold**  ==marked==  !!warning!!  ++good++
+  function rich(text) {
+    const frag = document.createDocumentFragment();
+    const re = /\*\*(.+?)\*\*|==(.+?)==|!!(.+?)!!|\+\+(.+?)\+\+/g;
+    const s = String(text ?? ''); let last = 0, mm;
+    while ((mm = re.exec(s))) {
+      if (mm.index > last) frag.append(s.slice(last, mm.index));
+      if (mm[1] != null) frag.append(el('strong', null, mm[1]));
+      else if (mm[2] != null) frag.append(el('mark', null, mm[2]));
+      else if (mm[3] != null) frag.append(el('span', 'w', mm[3]));
+      else frag.append(el('span', 'g', mm[4]));
+      last = re.lastIndex;
+    }
+    if (last < s.length) frag.append(s.slice(last));
+    return frag;
+  }
+  const rel = (tag, cls, text) => { const e = el(tag, cls); e.append(rich(text)); return e; };
+
+  // Custom cards: Claude composes these from a fixed set of block types.
+  function block(b) {
+    const w = el('div', 'blk');
+    switch (b.type) {
+      case 'text': w.append(rel('div', null, b.text)); break;
+      case 'bullets': { const ul = el('ul', 'bul'); for (const i of (b.items || []).slice(0, 12)) ul.append(rel('li', null, i)); w.append(ul); break; }
+      case 'stats': { const s = el('div', 'stats'); for (const i of (b.items || []).slice(0, 4)) { const c = el('div', 'stat'); c.append(el('div', 'v', i.value), el('div', 'l', i.label)); s.append(c); } w.append(s); break; }
+      case 'kv': for (const i of (b.items || []).slice(0, 12)) { const r = el('div', 'kv'); r.append(el('span', 'k', i.key), rel('span', 'v', i.value)); w.append(r); } break;
+      case 'timeline': for (const i of (b.items || []).slice(0, 12)) { const r = el('div', 'tl'); r.append(el('div', 'tm', i.time), rel('div', 'ln', i.text)); w.append(r); } break;
+      case 'progress': { const pct = Math.max(0, Math.min(100, Number(b.value) / Number(b.max || 100) * 100 || 0));
+        w.append(rel('div', null, b.label)); const bar = el('div', 'bar'); const f = el('div'); f.style.width = pct + '%'; f.style.background = col(b.color); bar.append(f); w.append(bar); break; }
+      case 'chips': { const c = el('div', 'chips'); for (const i of (b.items || []).slice(0, 16)) c.append(el('span', 'chip', i)); w.append(c); break; }
+      case 'callout': { const c = rel('div', 'callout', b.text); const k = col(b.color || 'blue'); c.style.background = `color-mix(in srgb, ${k} 14%, transparent)`; w.append(c); break; }
+      case 'quote': w.append(rel('div', 'quote', b.text)); break;
+      default: return null;
+    }
+    return w;
+  }
+  function renderCards(cards) {
+    $('customTop').replaceChildren(); $('customBottom').replaceChildren();
+    for (const c of (cards || []).slice(0, 6)) {
+      const g = el('div', 'group');
+      const h = el('div', 'cardhead'); const ic = el('div', 'ic'); ic.style.background = col(c.color); ic.append(svg(I[c.icon] || I.star)); h.append(ic, el('div', 'ttl', c.title)); g.append(h);
+      for (const b of (c.blocks || []).slice(0, 8)) { const n = block(b); if (n) g.append(n); }
+      const wrap = el('div'); if (c.label) wrap.append(el('div', 'label', c.label)); else wrap.append(el('div', 'label', ' '));
+      wrap.append(g); (c.position === 'top' ? $('customTop') : $('customBottom')).append(wrap);
+    }
+  }
+
+  const COLORS = ['#0381fe', '#2bab5f', '#f08c00', '#7c5cff', '#e8453c', '#00a5b5'];
+  const colorFor = (s) => COLORS[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
+
+  const state = (msg, retry) => { const s = $('state'); s.replaceChildren(); const box = el('div'); box.append(el('div', null, msg));
+    if (retry) { const b = el('button', null, 'Erneut laden'); b.onclick = () => location.reload(); box.append(b); } s.append(box); s.hidden = false; $('app').hidden = true; };
+
+  // Key storage: localStorage + IndexedDB copy + "persistent storage" request, so the browser does not evict it.
+  const idb = (mode, fn) => new Promise((res) => {
+    try {
+      const rq = indexedDB.open('brief', 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+      rq.onsuccess = () => { try { const tx = rq.result.transaction('kv', mode); const r = fn(tx.objectStore('kv')); tx.oncomplete = () => res(r && r.result); tx.onerror = () => res(null); } catch (e) { res(null); } };
+      rq.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+  const VALID = /^[A-Za-z0-9_-]{43}$/;
+  let k = null;
+  async function loadKey() {
+    const m = location.hash.match(/k=([A-Za-z0-9_-]{43})/);
+    if (m) { localStorage.setItem('briefKey', m[1]); history.replaceState(null, '', location.pathname); }
+    let key = localStorage.getItem('briefKey');
+    if (!VALID.test(key || '')) {                                   // localStorage wiped? restore from IndexedDB
+      key = await idb('readonly', (st) => st.get('briefKey'));
+      if (VALID.test(key || '')) localStorage.setItem('briefKey', key);
+    }
+    if (VALID.test(key || '')) {
+      idb('readwrite', (st) => st.put(key, 'briefKey'));            // keep the second copy current
+      try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) { /* not supported */ }
+    }
+    return VALID.test(key || '') ? key : null;
+  }
+  async function run() {
+    if (!k) k = await loadKey();
+    if (!k) { state('Kein Schlüssel auf diesem Gerät. Bitte den QR-Code vom PC scannen.'); return; }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    let blob, d;
+    try { blob = await (await fetch('data.json?t=' + Date.now(), { cache: 'no-store' })).json(); }
+    catch (e) { state('Brief konnte nicht geladen werden.', true); return; }
+    try {
+      const key = await crypto.subtle.importKey('raw', b64(k), 'AES-GCM', false, ['decrypt']);
+      d = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(blob.iv) }, key, b64(blob.ct))));
+    } catch (e) { state('Entschlüsseln fehlgeschlagen. Bitte den QR-Code neu scannen.'); return; }
+    render(d);
+  }
+
+  function row(iconEl, color, title, sub, extra, meta) {
+    const r = el('div', 'row'); const ic = el('div', 'ic'); ic.style.background = color; ic.append(iconEl); r.append(ic);
+    const b = el('div', 'body'); const t = el('div', 't', title); b.append(t);
+    if (sub) b.append(el('div', 's', sub)); if (extra) b.append(extra); r.append(b);
+    if (meta) r.append(el('div', 'meta', meta)); return r;
+  }
+
+  const dlKey = (t) => (t.date || '') + '|' + norm(t.text);
+  const dlHidden = () => { try { return JSON.parse(localStorage.getItem('dlHidden') || '[]'); } catch (e) { return []; } };
+  function dlRow(t) {
+    const n = t.days; const date = String(t.due || '').split(' · ')[0];
+    const r = row(svg(I.clock), courseColor(t.text), t.text, date || null);
+    if (t.date) {
+      const x = el('button', 'xbtn', 'Falsch'); x.title = 'Diese Frist ist falsch – entfernen';
+      x.onclick = () => { if (!confirm('Diese Frist entfernen? Die KI bringt sie dann nicht wieder.\n\n' + t.text)) return;
+        localStorage.setItem('dlHidden', JSON.stringify([...dlHidden(), dlKey(t)].slice(-60))); queueEvent('dropdl', t.text, t.date); render(lastData); };
+      r.querySelector('.body').append(x);
+    }
+    if (typeof n === 'number') r.append(el('div', 'cd' + (n <= 3 ? ' now' : n < 10 ? ' soon' : ''), n === 0 ? 'heute' : n === 1 ? 'morgen' : `noch ${n} Tage`));
+    return r;
+  }
+
+  $('fuelRefresh').onclick = async () => {
+    const b = $('fuelRefresh'); if (!lastData || !lastData.fuel) return;
+    b.disabled = true; b.textContent = '↻ lädt …';
+    await liveFuel(lastData.fuel, true);
+    b.textContent = '↻ Aktualisieren'; b.disabled = false;
+  };
+  let lastData = null;
+  function render(d) {
+    lastData = d; CFG = d.cfg || {};
+    COURSE = (CFG.courses || []).map(([p, c]) => { try { return [new RegExp(p, 'i'), c]; } catch (e) { return [/$^/, c]; } });
+    const gen = new Date(d.generated); const now = new Date();
+    const hr = now.getHours();  // greeting follows the time you open it, not when it was made
+    $('greeting').textContent = (hr < 5 ? 'Gute Nacht' : hr < 11 ? 'Guten Morgen' : hr < 17 ? 'Hallo' : hr < 22 ? 'Guten Abend' : 'Gute Nacht') + (CFG.name ? ', ' + CFG.name : '');
+    $('date').textContent = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const fresh = sameDay(gen, now);
+    // warn when no fresh brief arrived (PC off / failed) or the run was degraded
+    const ageH = (now - gen) / 36e5; const al = $('alertBox'); al.replaceChildren();
+    if (ageH > 26) {
+      al.append(el('strong', null, 'Kein neuer Brief seit ' + Math.floor(ageH / 24) + (ageH >= 48 ? ' Tagen' : ' Tag') + '. '),
+        `Der letzte ist von ${WD[gen.getDay()]} ${gen.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}, ${hm(gen)} Uhr. ` +
+        'Der PC hat heute früh nicht geliefert – war er im Ruhezustand (nicht heruntergefahren)?');
+    } else if ((d.notes || []).length) {
+      al.append(el('strong', null, 'Eingeschränkt: '), d.notes.join(' · '));
+    }
+    al.hidden = !al.children.length;
+    $('briefLabel').textContent = 'Tages-Briefing · Stand ' + (fresh ? '' : `${WD[gen.getDay()]} ${gen.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}, `) + hm(gen) + ' Uhr';
+
+    // evening outlook (written in the morning run, shown from 18:00 on the same day)
+    $('tomorrow').replaceChildren(rel('p', null, d.tomorrow || ''));
+    $('tmWrap').hidden = !(d.tomorrow && fresh && hr >= 18);
+
+    const st = $('story'); st.replaceChildren();
+    const lead = el('div', 'group pad story'); lead.append(rel('div', 'lead', d.lead || d.headline || '')); st.append(lead);
+    // topic of a paragraph follows its colour (prompt: weather orange, mail blue, uni violet, news gray, all-clear green)
+    const TOPIC = { orange: ['clock', 'Frist'], blue: ['mail', 'Mails'], violet: ['hat', 'Uni'], gray: ['news', 'Info'],
+                    green: ['check', 'Entwarnung'], red: ['alert', 'Wichtig'], teal: ['star', 'Info'] };
+    const tiles = el('div', 'tiles');
+    for (const p of (d.story || [])) {
+      const c = typeof p === 'string' ? 'blue' : (TOPIC[p.color] ? p.color : 'blue'); const [icon, name] = TOPIC[c];
+      const t = el('div', 'tile'); const ti = el('div', 'ti'); const v = `var(--${c === 'teal' ? 'blue' : c === 'gray' ? 'sub' : c})`;
+      ti.style.background = `color-mix(in srgb, ${v} 20%, transparent)`; ti.style.color = v; ti.append(svg(I[icon]));
+      const tx = el('div', 'tx'); const tk = el('div', 'tk', name); tk.style.color = v; tx.append(tk);
+      if (p.title) tx.append(el('div', 'th', p.title));
+      tx.append(rel('div', null, typeof p === 'string' ? p : p.text));
+      t.append(ti, tx); tiles.append(t);
+    }
+    if (tiles.children.length) st.append(tiles);
+    renderCards(d.cards);
+
+    if (d.weather) drawWeather(d.weather, false);
+    else $('wxWrap').hidden = true;
+    liveWeather();
+    if (d.fuel) d.fuel.note = d.fuel_note || '';
+    drawFuel(d.fuel, null); liveFuel(d.fuel);
+
+    // video suggestions: ids validated, thumbnails from YouTube's image CDN, text via textContent
+    const vs = $('vids'); vs.replaceChildren();
+    for (const v of (d.videos || [])) {
+      if (!/^[\w-]{11}$/.test(v.id || '')) continue;
+      const a = el('a', 'vid'); a.href = 'https://www.youtube.com/watch?v=' + v.id; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      const img = el('img'); img.loading = 'lazy'; img.alt = ''; img.src = `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+      a.append(img, el('div', 'vt', v.title), el('div', 'vs', v.channel + (v.why ? ' · ' + v.why : ''))); vs.append(a);
+    }
+    $('vidWrap').hidden = !vs.children.length;
+
+    const td = $('todos'); td.replaceChildren();
+    // open circles; ticked = crossed out. Ticks are remembered (21 days) so the same task from a later brief stays hidden.
+    const done = loadDone();
+    for (const t of (d.todos || [])) {
+      const k = norm(t.text); if (done[k] && done[k].gen !== d.generated) continue;
+      td.append(todoRow(t.text, [t.source, t.due], !!done[k], (on) => { setDone(k, on, d.generated); queueEvent(on ? 'done' : 'undone', t.text); }));
+    }
+    // reminders from "Schnell notieren" that are due today (or overdue)
+    for (const n of loadNotes().filter(isDueNote)) {
+      const w = n.when; td.prepend(todoRow(n.t, ['Notiz' + (w.time ? ' · ' + w.time + ' Uhr' : ''), w.date < isoDay(new Date()) ? 'überfällig' : null], false,
+        () => setTimeout(() => { removeNote(n.at); render(d); }, 300)));
+    }
+    const doneRows = [...td.querySelectorAll('.row.done')];
+    if (doneRows.length) {
+      const grp = el('details', 'donegrp'); grp.append(el('summary', null, doneRows.length + ' erledigt'));
+      for (const r of doneRows) grp.append(r);
+      td.append(grp);
+    }
+    $('todoWrap').hidden = !td.children.length;
+
+    const ms = $('mails'); ms.replaceChildren();
+    const items = (d.mails && d.mails.items) || [];
+    for (const x of items) {
+      const initial = (x.from || '?').trim().charAt(0).toUpperCase();
+      const ic = el('span', null, initial);
+      const extra = rel('div', 'x', x.gist);
+      const r = row(ic, colorFor(x.from), x.from, x.subject, extra, x.account);
+      if (x.action) { const a = el('div', 's' + (x.importance >= 3 ? ' flag' : ''), x.action + (x.due ? ' · bis ' + x.due : '')); r.querySelector('.body').append(a); }
+      ms.append(r);
+    }
+    const other = (d.mails && d.mails.other) || 0;
+    if (other) ms.append(el('div', 'more', `Dazu ${other} weitere ohne Handlungsbedarf.`));
+    $('mailLabel').textContent = 'E-Mails';
+    $('mailWrap').hidden = !items.length && !other;
+
+    const nw = $('news'); nw.replaceChildren();
+    for (const n of (d.news || [])) nw.append(row(svg(I.news), '#767676', n.title, n.gist));
+    $('newsWrap').hidden = !nw.children.length;
+
+    // ---- deadlines in the next 7 days on the Heute tab
+    const dt = $('dlToday'); dt.replaceChildren();
+    const dls = liveDeadlines(d.uni && d.uni.deadlines);
+    for (const t of dls.filter(x => typeof x.days === 'number' && x.days <= 7)) {
+      dt.append(dlRow(t));
+    }
+    $('dlWrap').hidden = !dt.children.length;
+
+    // ---- Uni tab
+    const uni = d.uni || {}; const ui = uni.items || [];
+    const us = $('uniSummary'); us.replaceChildren(); us.append(rel('p', null, uni.summary || (ui.length ? '' : 'Keine neuen Uni-Mails seit dem letzten Brief.')));
+    const ud = $('uniDeadlines'); ud.replaceChildren();
+    for (const t of dls) ud.append(dlRow(t));
+    $('uniDlWrap').hidden = !ud.children.length;
+    const qz = $('quiz'); qz.replaceChildren();
+    (uni.quiz || []).forEach((q, i) => {
+      const det = el('details', 'qz'); const sm = el('summary'); const n = el('div', 'qn', i + 1); n.style.background = courseColor(q.course);
+      const b = el('div'); b.append(el('div', 'qc', q.course), rel('div', null, q.q), el('div', 'hint', 'Antippen für die Antwort'));
+      sm.append(n, b); det.append(sm, rel('div', 'qa', q.a)); qz.append(det);
+    });
+    $('quizWrap').hidden = !qz.children.length;
+    const um = $('uniMails'); um.replaceChildren();
+    for (const x of ui) {
+      const r = row(el('span', null, (x.from || '?').trim().charAt(0).toUpperCase()), courseColor(x.from), x.from, x.subject, rel('div', 'x', x.gist));
+      if (x.action) r.querySelector('.body').append(el('div', 's' + (x.importance >= 3 ? ' flag' : ''), x.action + (x.due ? ' · bis ' + x.due : '')));
+      um.append(r);
+    }
+    $('uniMailWrap').hidden = !ui.length;
+    const badge = $('uniBadge'); badge.textContent = ui.length; badge.hidden = !ui.length;
+
+    for (const t of document.querySelectorAll('.tab')) t.onclick = () => {
+      for (const o of document.querySelectorAll('.tab')) o.classList.toggle('on', o === t);
+      $('paneToday').hidden = t.dataset.tab !== 'today'; $('paneUni').hidden = t.dataset.tab !== 'uni';
+      scrollTo({ top: 0 });
+    };
+
+    const notes = (d.notes || []).join(' · ');
+    $('foot').textContent = 'Briefing ' + hm(gen) + ' Uhr' + (notes ? ' · ' + notes : '');
+    $('state').hidden = true; $('app').hidden = false;
+    drawBvb(); nextUp(); flushKi(); layout(); setTimeout(layout, 1500);
+  }
+
+  // ---- live weather (Open-Meteo, no key) – falls back to the 06:30 values
+  function drawWeather(w, live) {
+    $('wxTemp').textContent = Math.round(w.now) + '°';
+    $('wxDesc').textContent = WX[w.code] || '';
+    $('wxRange').textContent = `${Math.round(w.hi)}° / ${Math.round(w.lo)}°`;
+    const hrs = $('wxHours'); hrs.replaceChildren();
+    for (const h of (w.hourly || []).slice(0, 6)) { const c = el('div', 'hour'); c.append(el('div', 'h', h.h + ':00'), svg(wxIcon(h.c ?? w.code)), el('div', null, Math.round(h.t) + '°'), el('div', 'p', h.p >= 20 ? h.p + '%' : '')); hrs.append(c); }
+    $('wxLabel').textContent = 'Wetter' + (CFG.place ? ' · ' + CFG.place : '') + (live ? ' · ' + hm(new Date()) : ' · Stand Briefing');
+    $('wxLabel').classList.toggle('live', live); $('wxWrap').hidden = false;
+  }
+  let wxHours48 = null;
+  async function liveWeather() {
+    try {
+      if (!Array.isArray(CFG.home)) return;
+      const r = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${Number(CFG.home[1])}&longitude=${Number(CFG.home[0])}&timezone=Europe%2FBerlin`
+        + '&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min'
+        + '&hourly=temperature_2m,precipitation_probability,weather_code&forecast_days=2', { cache: 'no-store' })).json();
+      const nowH = new Date(); nowH.setMinutes(0, 0, 0);
+      const start = r.hourly.time.findIndex((t) => new Date(t) >= nowH);
+      const hourly = [];
+      for (let i = Math.max(0, start) + 1; i < r.hourly.time.length && hourly.length < 6; i += 2)
+        hourly.push({ h: Number(r.hourly.time[i].slice(11, 13)), t: r.hourly.temperature_2m[i], p: r.hourly.precipitation_probability[i] || 0, c: r.hourly.weather_code[i] });
+      wxHours48 = r.hourly.time.map((t, i) => ({ at: new Date(t), p: r.hourly.precipitation_probability[i] || 0 }));
+      drawWeather({ now: r.current.temperature_2m, code: r.current.weather_code, hi: r.daily.temperature_2m_max[0], lo: r.daily.temperature_2m_min[0], hourly }, true);
+      nextUp();
+    } catch (e) { /* offline: keep briefing values */ }
+  }
+
+  // ---- live diesel prices (Tankerkönig, CC BY 4.0); key + stations come from the encrypted brief
+  function drawFuel(f, prices, live) {
+    if (!f || !f.stations) { $('fuelWrap').hidden = true; return; }
+    const p = prices || Object.fromEntries(Object.entries(f.morning || {}).map(([id, v]) => [id, { status: 'open', diesel: v }]));
+    const open = f.stations.map((s) => p[s.id]).filter((x) => x && x.status === 'open' && typeof x.diesel === 'number');
+    const min = Math.min(...open.map((x) => x.diesel));
+    const g = $('fuel'); g.replaceChildren();
+    // traffic light: cheapest open station vs. 14-day average of the morning prices (from the PC run)
+    if (open.length && typeof f.avg === 'number') {
+      const diff = Math.round((min - f.avg) * 100);
+      const [c, word] = diff <= -2 ? ['var(--green)', 'Günstig'] : diff >= 2 ? ['var(--red)', 'Teuer'] : ['#e6b800', 'Normal'];
+      const amp = el('div', 'amp'); const dot = el('span', 'dot'); dot.style.background = c;
+      amp.append(dot, el('strong', null, word), ` · ${diff === 0 ? 'genau im' : Math.abs(diff) + ' ct ' + (diff < 0 ? 'unter dem' : 'über dem')} 14-Tage-Schnitt`);
+      g.append(amp);
+    }
+    if (f.note) { const n = rel('div', 'amp-note', f.note); g.append(n); }
+    for (const s of f.stations) {
+      const x = p[s.id] || {}; const ok = x.status === 'open' && typeof x.diesel === 'number';
+      const cheap = ok && open.length > 1 && x.diesel === min;
+      const price = el('div', 'price' + (cheap ? ' cheap' : ''));
+      if (ok) { const t = x.diesel.toFixed(3).replace('.', ','); price.append(t.slice(0, -1)); price.append(el('sup', null, t.slice(-1))); price.append(' €'); }
+      else price.textContent = '–';
+      const r = row(svg(I.fuel), cheap ? '#2bab5f' : '#767676', s.name, s.addr + (ok ? (cheap ? ' · am günstigsten' : '') : x.status === 'closed' ? ' · geschlossen' : ''));
+      r.append(price); g.append(r);
+    }
+    g.append(el('div', 'attr', 'Preise: Tankerkönig / MTS-K (CC BY 4.0)'));
+    $('fuelLabel').textContent = 'Diesel' + (live ? ' · ' + hm(new Date()) : ' · Stand Briefing');
+    $('fuelLabel').classList.toggle('live', !!live); $('fuelWrap').hidden = !Object.keys(p).length;
+  }
+  async function liveFuel(f, force) {
+    if (!f || !/^[0-9a-fA-F-]{36}$/.test(f.key || '')) return;
+    try {
+      let c = JSON.parse(localStorage.getItem('fuelCache') || 'null');
+      if (!c || Date.now() - c.t > (force ? 60e3 : 5 * 60e3)) {  // automatic: every 5 min at most; button: once per minute
+        const r = await (await fetch('https://creativecommons.tankerkoenig.de/json/prices.php?ids=' + f.stations.map((s) => s.id).join(',') + '&apikey=' + f.key, { cache: 'no-store' })).json();
+        if (!r.ok) return;
+        c = { t: Date.now(), prices: r.prices }; localStorage.setItem('fuelCache', JSON.stringify(c));
+      }
+      drawFuel(f, c.prices, new Date(c.t));
+      $('fuelLabel').textContent = 'Diesel · ' + hm(new Date(c.t));
+    } catch (e) { /* keep briefing prices */ }
+  }
+
+  // ---- quick capture: notes live only on this device (localStorage). Dates/times in the text are recognised.
+  const NK = 'briefNotes';
+  const isoDay = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  const loadNotes = () => { try { return JSON.parse(localStorage.getItem(NK) || '[]'); } catch (e) { return []; } };
+  const saveNotes = (a) => localStorage.setItem(NK, JSON.stringify(a.slice(0, 50)));
+  const removeNote = (at) => saveNotes(loadNotes().filter((n) => n.at !== at));
+  const isDueNote = (n) => !!(n.when && n.when.date <= isoDay(new Date()));
+  const DAYS = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
+  function parseWhen(text, base) {
+    const t = text.toLowerCase(); let day = null, m;
+    const add = (n) => { const x = new Date(base); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() + n); return x; };
+    if (/(^|\s)übermorgen\b/.test(t)) day = add(2);
+    else if (/\bmorgen\b/.test(t)) day = add(1);
+    else if (/\bheute\b/.test(t)) day = add(0);
+    else if ((m = t.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?/))) {
+      const y = m[3] ? Number(m[3].length === 2 ? '20' + m[3] : m[3]) : base.getFullYear();
+      day = new Date(y, Number(m[2]) - 1, Number(m[1]));
+      if (!m[3] && day < add(-1)) day.setFullYear(y + 1);
+    } else {
+      const i = DAYS.findIndex((dn) => new RegExp('(^|[^a-zäöü])' + dn).test(t));
+      if (i >= 0) { let diff = (i - base.getDay() + 7) % 7; if (/nächste[nr]?\s/.test(t) && diff === 0) diff = 7; day = add(diff); }
+    }
+    let time = null;
+    const noDate = t.replace(/\b\d{1,2}\.\d{1,2}\.(\d{2,4})?/g, ' ');
+    if ((m = noDate.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/))) time = `${m[1].padStart(2, '0')}:${m[2]}`;
+    else if ((m = noDate.match(/\b(?:um|ab|gegen)\s+([01]?\d|2[0-3])\b/)) || (m = noDate.match(/\b([01]?\d|2[0-3])\s*uhr\b/))) time = `${m[1].padStart(2, '0')}:00`;
+    if (!day && time) day = add(0);
+    return day ? { date: isoDay(day), time } : null;
+  }
+  const whenLabel = (w) => { const [y, mo, da] = w.date.split('-').map(Number); const dd = new Date(y, mo - 1, da);
+    return `${WD[dd.getDay()]} ${String(da).padStart(2, '0')}.${String(mo).padStart(2, '0')}.` + (w.time ? ' · ' + w.time + ' Uhr' : ''); };
+  const sortKey = (n) => n.when ? n.when.date + (n.when.time || '') : '~' + (1e15 - n.at);
+  function drawNotes(skipFlush) {
+    const list = $('capList'); list.replaceChildren();
+    for (const x of loadKi().filter((y) => !y.k || y.k === 'note')) {
+      const r = el('div', 'row'); const b = el('button', 'done-btn'); b.setAttribute('aria-label', 'Zurückziehen');
+      b.onclick = () => { saveKi(loadKi().filter((y) => y.id !== x.id)); drawNotes(true); };
+      const body = el('div', 'body'); body.append(el('div', 't', x.t),
+        el('div', 's kitag', x.sent ? 'Für die KI · verschickt, wird beim nächsten Brief gelesen' : 'Für die KI · wird verschickt …'));
+      r.append(b, body); list.append(r);
+    }
+    const notes = loadNotes().filter((n) => !isDueNote(n)).sort((a, b) => sortKey(a) < sortKey(b) ? -1 : 1);  // due ones live in "Zu erledigen"
+    for (const n of notes) {
+      const r = el('div', 'row'); const b = el('button', 'done-btn'); b.setAttribute('aria-label', 'Erledigt');
+      b.onclick = () => { b.classList.add('on'); setTimeout(() => { removeNote(n.at); drawNotes(); }, 250); };
+      const body = el('div', 'body'); body.append(el('div', 't', n.t));
+      body.append(n.when ? el('div', 's due', 'Erinnerung ' + whenLabel(n.when))
+                         : el('div', 's', new Date(n.at).toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })));
+      r.append(b, body); list.append(r);
+    }
+    list.hidden = !list.children.length;
+    nextUp();
+  }
+  // ---- notes for the AI: encrypted with the brief key, posted to a private ntfy topic, re-sent until acknowledged
+  const KQ = 'kiQueue';
+  const loadKi = () => { try { return JSON.parse(localStorage.getItem(KQ) || '[]'); } catch (e) { return []; } };
+  const saveKi = (a) => localStorage.setItem(KQ, JSON.stringify(a.slice(0, 60)));
+  const b64u = (u8) => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  let kiBusy = false, kiAgain = false;
+  async function flushKi() {
+    if (!lastData || !/^[\w-]{6,80}$/.test(lastData.inbox || '')) return;
+    if (kiBusy) { kiAgain = true; return; }
+    kiBusy = true;
+    try {
+      const ack = new Set(lastData.ki_ack || []);
+      saveKi(loadKi().filter((x) => !ack.has(x.id)));           // read by the brief -> done
+      const encKey = await crypto.subtle.importKey('raw', b64(k), 'AES-GCM', false, ['encrypt']);
+      for (const x of loadKi()) {
+        if (x.gh || Date.now() - (x.sent || 0) < 6 * 36e5) continue;   // GitHub: stored until read; ntfy (~12 h): re-send every 6 h
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encKey, new TextEncoder().encode(JSON.stringify({ id: x.id, t: x.t, at: x.at, k: x.k || 'note', d: x.d }))));
+        const body = JSON.stringify({ iv: b64u(iv), ct: b64u(ct) }); const gh = lastData.gh_inbox;
+        let viaGh = false;
+        if (gh && /^[\w.-]+\/[\w.-]+$/.test(gh.repo || '') && gh.token) {
+          // private repo: kept until the PC has read it (ntfy only keeps ~12 h)
+          const r = await fetch(`https://api.github.com/repos/${gh.repo}/contents/inbox/${x.id}.json`, { method: 'PUT',
+            headers: { Authorization: 'Bearer ' + gh.token, Accept: 'application/vnd.github+json' },
+            body: JSON.stringify({ message: 'note', content: btoa(body) }) });
+          viaGh = r.ok || r.status === 422;   // 422 = already there
+        }
+        const ok = viaGh || (await fetch('https://ntfy.sh/' + lastData.inbox, { method: 'POST', body })).ok;
+        if (ok) saveKi(loadKi().map((y) => y.id === x.id ? { ...y, sent: Date.now(), gh: viaGh } : y));   // update fresh copy, never a stale one
+      }
+    } catch (e) { /* offline: retry next time */ }
+    kiBusy = false; drawNotes(true);
+    if (kiAgain) { kiAgain = false; flushKi(); }
+  }
+  function queueEvent(kind, text, date) {
+    const a = loadKi(); a.unshift({ id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), k: kind, t: String(text).slice(0, 300), d: date, at: Date.now(), sent: 0 });
+    saveKi(a); flushKi();
+  }
+  function addKi() {
+    const v = $('capIn').value.trim(); if (!v) return;
+    const a = loadKi(); a.unshift({ id: 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: v.slice(0, 500), at: Date.now(), sent: 0 }); saveKi(a);
+    $('capIn').value = ''; drawNotes(); flushKi();
+  }
+  const kiOn = () => $('kiBtn').getAttribute('aria-pressed') === 'true';
+  $('kiBtn').onclick = () => {
+    const on = !kiOn(); $('kiBtn').setAttribute('aria-pressed', String(on)); $('capture').classList.toggle('ki-on', on);
+    $('capIn').placeholder = on ? 'Anmerkung für die KI' : 'Schnell notieren'; $('capIn').focus();
+  };
+
+  function addNote() {
+    const v = $('capIn').value.trim(); if (!v) return;
+    const a = loadNotes(); a.unshift({ t: v.slice(0, 200), at: Date.now(), when: parseWhen(v, new Date()) }); saveNotes(a);
+    $('capIn').value = ''; drawNotes(); if (lastData) render(lastData);
+  }
+
+  // ---- ticked to-dos (persist across briefs on this device)
+  const norm = (x) => String(x || '').toLowerCase().replace(/[^a-zäöüß0-9]+/g, '').slice(0, 48);
+  const loadDone = () => { try { return JSON.parse(localStorage.getItem('todoDone') || '{}'); } catch (e) { return {}; } };
+  function setDone(k, on, gen) {
+    const all = loadDone(); if (on) all[k] = { ts: Date.now(), gen }; else delete all[k];
+    for (const [x, v] of Object.entries(all)) if (Date.now() - v.ts > 21 * 864e5) delete all[x];
+    localStorage.setItem('todoDone', JSON.stringify(all));
+  }
+  function todoRow(text, subs, isDone, onToggle) {
+    const r = el('div', 'row' + (isDone ? ' done' : '')); const b = el('button', 'chk'); b.setAttribute('aria-label', 'Erledigt'); b.append(svg(I.check));
+    b.onclick = () => { const on = !r.classList.contains('done'); r.classList.toggle('done', on); onToggle(on); };
+    const body = el('div', 'body'); body.append(rel('div', 't', text));
+    subs.forEach((x, i) => { if (x) body.append(el('div', i ? 's due' : 's', x)); });
+    r.append(b, body); return r;
+  }
+
+  // ---- "Wann muss ich los?": next timed reminder within 36 h; car time from home via OSRM (no key) + buffer
+  const placesCfg = () => (CFG.places || []).map((p) => { try { return { ...p, rx: new RegExp(p.re, 'i') }; } catch (e) { return null; } }).filter(Boolean);
+  const inRange = (iso, list) => list.some(([a, b]) => iso >= a && iso <= b);
+  function timetable(now) {
+    const out = [];
+    for (let i = 0; i < 3; i++) {
+      const day = new Date(now); day.setDate(day.getDate() + i); const iso = isoDay(day); const dow = day.getDay();
+      const C = CFG; if (!C.timetable) return out;
+      if (dow === 0 || dow === 6 || (C.holidays || []).includes(iso) || inRange(iso, C.vacation || [])) continue;
+      const lectureWeek = inRange(iso, C.lectures || []) && !inRange(iso, C.block_weeks || []) && !inRange(iso, C.no_lectures || []);
+      const entries = (lectureWeek ? C.timetable.filter((x) => x.dow === dow) : [{ work: true }])
+        .map((x) => x.work ? C.work : x).filter((x) => x && x.time);
+      for (const e of entries) out.push({ n: { t: e.t + (e.note ? ' (' + e.note + ')' : '') }, at: new Date(iso + 'T' + e.time) });
+    }
+    return out;
+  }
+  // ---- BVB home matches: shown until marked "Nicht wichtig" (synced to the PC via the inbox)
+  const bvbHiddenAll = () => { let a = []; try { a = JSON.parse(localStorage.getItem('bvbHidden') || '[]'); } catch (e) {}
+    return [...new Set(a.concat((lastData && lastData.bvb_hidden) || []))]; };
+  function hideMatch(at) {
+    localStorage.setItem('bvbHidden', JSON.stringify([...bvbHiddenAll(), at].slice(-60)));
+    queueEvent('bvbhide', at); drawBvb(); nextUp();
+  }
+  function drawBvb() {
+    const g = $('bvb'); g.replaceChildren(); const hidden = bvbHiddenAll(); const now = new Date();
+    for (const m of ((lastData && lastData.bvb_home) || [])) {
+      const kick = new Date(m.at); if (kick < new Date(now - 3 * 36e5)) continue;   // already over
+      if (hidden.includes(m.at)) break;   // next match marked unimportant: show nothing until it is over
+      const when = `${WD[kick.getDay()]} ${kick.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} · ${hm(kick)} Uhr`;
+      const r = row(svg(I.sport), '#f5c400', 'gegen ' + m.vs, when + ' · ' + m.comp);
+      const x = el('button', 'xbtn', 'Nicht wichtig'); x.onclick = () => hideMatch(m.at); r.append(x); x.style.alignSelf = 'center';
+      g.append(r); break;   // only the next one; dismissing it brings up the one after
+    }
+    $('bvbWrap').hidden = !g.children.length;
+  }
+  let nuSeq = 0;
+  async function nextUp() {
+    const box = $('nextUp'); const now = new Date(); const my = ++nuSeq;
+    const tmr = new Date(now); tmr.setDate(tmr.getDate() + 1);
+    const dayWord = (dt) => sameDay(dt, now) ? 'heute' : sameDay(dt, tmr) ? 'morgen' : WD[dt.getDay()];
+    const matches = ((lastData && lastData.bvb_home) || []).map((m) => ({ ...m, kick: new Date(m.at) }));
+    const fromNotes = loadNotes().filter((n) => n.when && n.when.time).map((n) => ({ n, at: new Date(n.when.date + 'T' + n.when.time) }));
+    const cand = fromNotes.concat(timetable(now)).filter((x) => x.at > now && x.at - now < 36 * 36e5).sort((a, b) => a.at - b.at)[0];
+    // home match today (or on the appointment's day)
+    const hiddenM = bvbHiddenAll();
+    const match = matches.filter((m) => !hiddenM.includes(m.at))
+      .find((m) => m.kick > new Date(now - 3 * 36e5) && (sameDay(m.kick, now) || (cand && sameDay(m.kick, cand.at))));
+    const lines = [];
+    if (cand) { const l = el('div'); l.append(el('strong', null, `Nächster Termin: ${dayWord(cand.at) === 'heute' ? '' : dayWord(cand.at) + ' '}${hm(cand.at)} Uhr`), ' · ' + cand.n.t.slice(0, 60)); lines.push(l); }
+    if (match) {
+      const l = el('div', 'w', `BVB-Heimspiel ${dayWord(match.kick)} ${hm(match.kick)} Uhr gegen ${match.vs} – rund ums Stadion Stau`);
+      const x = el('button', 'xbtn', 'Nicht wichtig');
+      x.onclick = () => hideMatch(match.at);
+      l.append(x); lines.push(l);
+    }
+    box.replaceChildren(...lines); box.hidden = !lines.length;
+    if (!cand) return;
+    const place = placesCfg().find((p) => p.rx.test(cand.n.t)); if (!place || !Array.isArray(CFG.home)) return;
+    try {
+      const ck = 'route:' + place.label; let mins = Number(sessionStorage.getItem(ck));
+      if (!mins) {
+        const r = await (await fetch(`https://router.project-osrm.org/route/v1/driving/${CFG.home.map(Number).join(',')};${place.at.map(Number).join(',')}?overview=false`)).json();
+        mins = Math.round(r.routes[0].duration / 60 * 1.25 + 10); sessionStorage.setItem(ck, mins);   // +25 % traffic, +10 min parking/walking
+      }
+      if (my !== nuSeq) return;   // a newer call already redrew the box
+      // match traffic: appointment within 5 h of kick-off -> +30 min (stadium) / +15 min (elsewhere in Dortmund)
+      const near = match && Math.abs(match.kick - cand.at) < 5 * 36e5;
+      const extra = near ? (place.stadium ? 30 : 15) : 0;
+      const total = mins + extra;
+      const leave = new Date(cand.at - total * 6e4); leave.setMinutes(Math.floor(leave.getMinutes() / 5) * 5, 0, 0);
+      const late = leave <= now;
+      let txt = late ? `Jetzt losfahren! (≈ ${total} min bis ${place.label})` : `Spätestens ${hm(leave)} Uhr losfahren · ≈ ${total} min bis ${place.label}`;
+      if (extra) txt += ` (inkl. ${extra} min Spieltag-Puffer)`;
+      box.append(el('div', late ? 'w' : 's', txt));
+      // rain between departure and 2 h after the appointment
+      const wet = (wxHours48 || []).find((h) => h.at >= new Date(leave - 36e5) && h.at <= new Date(+cand.at + 2 * 36e5) && h.p >= 50);
+      if (wet) box.append(el('div', 'rain', `Ab ${hm(wet.at)} Uhr Regen (${wet.p} %) – Schirm einpacken`));
+    } catch (e) { /* offline: no departure time */ }
+  }
+  const submitCap = () => (kiOn() ? addKi() : addNote());
+  $('capBtn').onclick = submitCap;
+  $('capIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitCap(); $('capIn').blur(); } });
+  drawNotes();
+
+  // home-screen app stays open for days: refresh everything when it comes back to the foreground
+  let lastRun = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - lastRun > 60e3) { lastRun = Date.now(); run(); }
+  });
+  const wide = matchMedia('(min-width: 860px)');
+  const ORDER = ['briefBlock', 'customTop', 'dlWrap', 'todoWrap', 'mailWrap', 'wxWrap', 'bvbWrap', 'fuelWrap', 'newsWrap', 'vidWrap', 'customBottom'];
+  function layout() {
+    const L = $('colL'), R = $('colR'); const els = ORDER.map((id) => $(id));
+    const hold = document.createDocumentFragment(); els.forEach((e) => hold.append(e));   // take all out, then place
+    if (!wide.matches) { els.forEach((e) => L.append(e)); return; }   // phone: one column, fixed order
+    L.append(els[0]); R.append(els[ORDER.indexOf('wxWrap')]);
+    els.forEach((e, i) => { if (i !== 0 && ORDER[i] !== 'wxWrap') (L.offsetHeight <= R.offsetHeight ? L : R).append(e); });
+  }
+  wide.addEventListener('change', layout); layout();
+  run();
+})();
+</script>
+</body>
+</html>
